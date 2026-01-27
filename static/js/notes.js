@@ -58,8 +58,21 @@ async function displayEncryptedNotes(notes) {
                 throw new Error('cryptoManager is not defined');
             }
 
-            const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
-            const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
+            const compositeIvBuffer = cryptoManager.base64ToArrayBuffer(note.iv);
+            const ivBytes = new Uint8Array(compositeIvBuffer);
+
+            let titleIv, contentIv;
+
+            if (ivBytes.length === 24){
+                titleIv = ivBytes.slice(0, 12);
+                contentIv = ivBytes.slice(12, 24);
+            } else {
+                titleIv = ivBytes;
+                contentIv = ivBytes;
+            }
+
+            const title = await cryptoManager.decryptData(note.encrypted_title, titleIv);
+            const content = await cryptoManager.decryptData(note.encrypted_content, contentIv);
 
             const noteElement = createNoteElement({
                 ...note,

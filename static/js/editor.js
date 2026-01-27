@@ -24,8 +24,13 @@ class EditorManager {
 
             const note = await response.json();
 
-            const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
-            const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
+            const iv = cryptoManager.base64ToArrayBuffer(note.iv)
+
+            const titleiv = new Uint8Array(iv.slice(0, 12));
+            const contentiv = new Uint8Array(iv.slice(12, 24));
+
+            const title = await cryptoManager.decryptData(note.encrypted_title, titleiv);
+            const content = await cryptoManager.decryptData(note.encrypted_content, contentiv);
 
             document.getElementById('noteTitle').value = title;
             document.getElementById('noteContent').value = content;
@@ -77,11 +82,14 @@ class EditorManager {
         const content = document.getElementById('noteContent').value;
 
         try {
-            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const iv = crypto.getRandomValues(new Uint8Array(24));
             const ivBase64 = cryptoManager.arrayBufferToBase64(iv);
 
-            const encryptedTitle = await cryptoManager.encryptData(title, iv);
-            const encryptedContent = await cryptoManager.encryptData(content, iv);
+            const titleiv = iv.slice(0, 12);
+            const contentiv = iv.slice(12, 24);
+
+            const encryptedTitle = await cryptoManager.encryptData(title, titleiv);
+            const encryptedContent = await cryptoManager.encryptData(content, contentiv);
 
             const url = this.isNewNote ? '/api/notes' : `/api/notes/${this.noteId}`;
             const method = this.isNewNote ? 'POST' : 'PUT';

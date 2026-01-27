@@ -144,10 +144,24 @@ class CryptoManager {
     async deriveKey(password, salt) {
         const encoder = new TextEncoder();
         const passwordBuffer = encoder.encode(password);
-        const importedKey = await crypto.subtle.importKey("raw", passwordBuffer, "PBKDF2", false, ["deriveKey"]);
+        const importedKey = await crypto.subtle.importKey(
+            "raw",
+            passwordBuffer,
+            "PBKDF2",
+            false,
+            ["deriveKey"]
+        );
         return await crypto.subtle.deriveKey(
-            { name: "PBKDF2", salt: salt, iterations: 600000, hash: "SHA-256" },
-            importedKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+            {
+                name: "PBKDF2",
+                salt: salt,
+                iterations: 600000,
+                hash: "SHA-256"
+            },
+            importedKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"]
         );
     }
 
@@ -162,10 +176,12 @@ class CryptoManager {
         const encoder = new TextEncoder();
         const dataBuffer = encoder.encode(data);
 
+        const ivBuffer = (typeof iv === 'string') ? this.base64ToArrayBuffer(iv) : iv;
+
         const encrypted = await crypto.subtle.encrypt(
             {
                 name: "AES-GCM",
-                iv: iv
+                iv: ivBuffer
             },
             this.sessionKey,
             dataBuffer
@@ -180,7 +196,7 @@ class CryptoManager {
         }
 
         const encryptedBuffer = this.base64ToArrayBuffer(encryptedData);
-        const ivBuffer = this.base64ToArrayBuffer(iv);
+        const ivBuffer = (typeof iv === 'string') ? this.base64ToArrayBuffer(iv) : iv;
         const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBuffer }, this.sessionKey, encryptedBuffer);
         const decoder = new TextDecoder();
         return decoder.decode(decrypted);
